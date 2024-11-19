@@ -10,6 +10,7 @@ contract Lottery {
     uint256 public chosenNum;
     address public charityAccount;
     address public owner;
+    mapping(uint8 => uint256) public price;   //enmu to price
 
     event CharitySet(address indexed charityAccount);
 
@@ -50,5 +51,9 @@ contract Lottery {
 
         charityAccount = newCharityAccount;
         emit CharitySet(newCharityAccount);
+    }
+
+    function getPrice(uint8 lotterytype) public view returns(uint256){
+        return price[lotterytype];
     }
 }
