@@ -42,9 +42,9 @@ contract ERC20 {
 
     function transfer(address _to, uint256 _value) public returns (bool) {
         require(_to != address(0), "Invalid recipient address");
-        require(balanceOf[msg.sender] >= _value, "Insufficient balance");
+        require(balanceOf[tx.origin] >= _value, "Insufficient balance");
 
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(_value);
+        balanceOf[tx.origin] = balanceOf[tx.origin].sub(_value);
         balanceOf[_to] = balanceOf[_to].add(_value);
 
         emit Transfer(msg.sender, _to, _value);
@@ -59,11 +59,7 @@ contract ERC20 {
         return true;
     }
 
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _value
-    ) public returns (bool) {
+    function transferFrom(address _from,address _to,uint256 _value) public returns (bool) {
         require(_to != address(0), "Invalid recipient address");
         require(balanceOf[_from] >= _value, "Insufficient balance");
         require(allowance[_from][msg.sender] >= _value, "Allowance exceeded");

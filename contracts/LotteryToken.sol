@@ -5,7 +5,7 @@ import "./ERC20.sol";
 contract LotteryToken is ERC20 {
     uint256 public INITIAL_SUPPLY = 1000000;
     uint256 public LT_PRICE = 0.001 ether;   // token price in ether
-    address public owner;
+    address payable  public owner;
 
     event TopupEvent(address indexed purchaser, uint256 amount);
 
@@ -13,20 +13,31 @@ contract LotteryToken is ERC20 {
         owner = msg.sender;
     }
 
-    function topup(uint256 _amount) public payable returns (bool success) {
-        uint256 requiredEther = _amount * LT_PRICE;
-        require(msg.value >= requiredEther, "Insufficient Ether sent");
 
+    //topup for a user
+    function topup(address payable user,uint256 _amount) public payable returns (bool success) {
+        //calculate the requiredEther
+        // require(msg.value >= requiredEther, "Insufficient Ether sent");
+        
         // Transfer tokens to purchaser
-        balanceOf[msg.sender] += _amount;
+
+        balanceOf[user] += _amount;
+        balanceOf[owner] -= _amount;
         totalSupply += _amount;
 
-        emit TopupEvent(msg.sender, _amount);
 
-        if (msg.value > requiredEther) {
-            msg.sender.transfer(msg.value - requiredEther);
-        }
+        emit TopupEvent(user, _amount);
 
         return true;
+    }
+
+    function getbalance(address user) public view  returns(uint256 amount)
+    {
+        return balanceOf[user];
+    }
+
+    function getTokenPrice() public view returns (uint256) 
+    {
+        return LT_PRICE; // 调用 LotteryToken 的 LT_PRICE
     }
 }

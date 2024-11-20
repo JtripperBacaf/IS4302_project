@@ -17,14 +17,17 @@ contract Lottery {
     constructor(
         LotteryType _lotteryType,
         uint256 _chosenNum,
-        address _charityAccount
+        address _charityAccount,
+        address _owner
     ) public {
         require(_charityAccount != address(0), "Invalid charity address");
 
         lotteryType = _lotteryType;
         chosenNum = _chosenNum;
         charityAccount = _charityAccount;
-        owner = msg.sender;
+        owner = _owner;
+        price[0]=10;    //initial every type of lottery as 10 token each
+        price[1]=10;
 
         emit CharitySet(_charityAccount);
     }
