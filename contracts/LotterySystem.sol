@@ -13,11 +13,11 @@ contract LotterySystem {
         uint256 totalReceived; // amount the charity has received from this contract
     }
 
+    uint256 public LT_PRICE = 0.001 ether;
     // charity related
     address[] public CharityArray;
     address[] public pendingCharities; // Pending charities for verification
     mapping(address => Charity) public charityInfo; // charity data
-    mapping(address => uint256) public charityAmounts;
 
     // lottery related
     Lottery[] public LotteryArray;
@@ -31,6 +31,10 @@ contract LotterySystem {
     Lottery[] public PrizeArray;
     uint256[] public PriceNum;
     uint256 prize;
+    uint8 public prizePercentage;
+    uint8 public ownerPercentage;
+    uint8 public charityPercentage;
+    uint8 public rolloverPercentage;
 
 
 
@@ -39,10 +43,7 @@ contract LotterySystem {
     uint256 public drawTime;
     uint256 public prizepool;
 
-    uint8 public prizePercentage;
-    uint8 public ownerPercentage;
-    uint8 public charityPercentage;
-    uint8 public rolloverPercentage;
+
 
     address public owner;
 
@@ -93,13 +94,13 @@ contract LotterySystem {
 
         // Set default percentages
         ownerPercentage = 1;
-        charityPercentage = 5;
-        prizePercentage = 70;
+        charityPercentage = 2;
+        prizePercentage = 6;
         rolloverPercentage = 24;
     }
 
-    function buyLottery(uint256 value,address charityAddress,uint8 times) public payable  {
-        //require(charityInfo[charityAddress].verified,"This Charity is not verified");
+    function buyLottery(uint256 value,address payable  charityAddress,uint8 times) public payable  {
+        require(charityInfo[charityAddress].verified,"This Charity is not verified");
         // create Lottery
         address buyer=msg.sender;
         // address payable ContractAddress=address(this);
@@ -116,35 +117,36 @@ contract LotterySystem {
             lotteryToken.transfer(owner,ticketprice);
 
             //set prizepool
-            prizepool += ticketprice;
+            prizepool += ticketprice*prizePercentage/10;
             
-            // uint256 charityAmount = ticketprice.mul(charityPercentage).div(100);
-            // charityAmounts[charityAddress] = charityAmounts[charityAddress].add(charityAmount);
-            // prizepool = prizepool.add(ticketprice.sub(charityAmount));
+            
+            uint256 charityAmount = ticketprice.mul(charityPercentage).div(10);
+            charityInfo[charityAddress].totalReceived += charityAmount;
+            charityAddress.transfer(charityAmount*LT_PRICE);
         }
 
     }
 
-    function draw(uint256 seed) public  {
+    function draw(uint256 seed) public  onlyOwner{
         //random(seed)  select n number.
-        prizenum.push(seed);
-        //initial idea
-        prizepool=prizepool/2;
-        /*
-        get the address of LotteryArray and xor the address of each contract
-        require(lotteryArray.length > 0, "Lottery array is empty");
+        
+        //seed generate by chainlink
+        //get the address of LotteryArray and xor the address of each contract
+        require(LotteryArray.length > 0, "Lottery array is empty");
 
         // initial the Result
-        uint256 xorResult = 0;
+        uint160 xorResult = 0;
 
         // loop the Array to xor with the result
-        for (uint256 i = 0; i < lotteryArray.length; i++) {
-            xorResult ^= uint256(uint160(lotteryArray[i])); // 将 address 转为 uint256
-        }
+        // for (uint256 i = 0; i < LotteryArray.length; i++) {
+        //     xorResult=uint160(address(LotteryArray[i])); // 将 address 转为 uint256
+        // }
+        //xorResult=uint160(address(LotteryArray[LotteryArray.length-1]));
 
         // mod the result with 10 to get the randomNumber
-        uint8 randomNumber = uint8(xorResult % 10);
-        */
+        uint8 randomNumber = uint8((xorResult+seed) % 10);
+        
+        prizenum.push(randomNumber);
                 //get the prize num and address of owner
         for(uint256 i=0;i<LotteryArray.length;i++)
         {
@@ -165,18 +167,17 @@ contract LotterySystem {
         for(uint256 i=0;i<PrizeArray.length;i++)
         {
             address payable winner=address(uint160(PrizeArray[i].getOwner()));
-            winner.transfer(prize*0.001 ether);
+            winner.transfer(prize*LT_PRICE);
         }
 
         
     }
 
-    function getPrizeArray(uint256 index) public view returns(Lottery)
-    {
+    function getPrizeArray(uint256 index) public view returns(Lottery){
         return PrizeArray[index];
     }
 
-    function joinCharity(string memory name,address charityAddress) public onlyOwner {
+    function joinCharity(string memory name,address charityAddress) public {
         require(charityAddress != address(0), "Invalid charity address");
         require(!charityInfo[charityAddress].verified,"Charity already verified");
 
@@ -184,14 +185,8 @@ contract LotterySystem {
         emit CharityJoined(name, charityAddress);
     }
 
-    function verifyCharity(
-        address charityAddress,
-        bool result
-    ) public onlyOwner {
-        require(
-            !charityInfo[charityAddress].verified,
-            "Charity already verified"
-        );
+    function verifyCharity(address charityAddress,bool result) public onlyOwner {
+        require(!charityInfo[charityAddress].verified,"Charity already verified");
 
         if (result) {
             charityInfo[charityAddress].verified = true;
@@ -201,22 +196,6 @@ contract LotterySystem {
         emit CharityVerified(charityAddress, result);
     }
 
-    // function payCharities() public onlyOwner {
-    //     for (uint256 i = 0; i < CharityArray.length; i++) {
-    //         address payable charityAddress = CharityArray[i];
-    //         uint256 amount = charityAmounts[charityAddress];
-
-    //         if (amount > 0) {
-    //             charityAddress.transfer(amount);
-    //             charityInfo[charityAddress].totalReceived = charityInfo[
-    //                 charityAddress
-    //             ].totalReceived.add(amount);
-    //             charityAmounts[charityAddress] = 0; // Reset charity amount
-
-    //             emit CharityPaid(charityAddress, amount);
-    //         }
-    //     }
-    // }
 
     // Util functions
 
@@ -320,6 +299,19 @@ contract LotterySystem {
     function getPrize() public view returns(uint256)
     {
         return prize;
+    }
+
+    function getCharityNamebyaddress(address charityAddress) public view returns(string memory){
+        return charityInfo[charityAddress].name;
+    }
+
+    function getPrizeNum() public view returns(uint256){
+        return prizenum[0];
+    }
+
+    function getLotteryAddress() public view returns(uint160 re){
+        re=uint160(address(LotteryArray[0]));
+        return re;
     }
 
 
