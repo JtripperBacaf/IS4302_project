@@ -138,10 +138,9 @@ contract LotterySystem {
         uint160 xorResult = 0;
 
         // loop the Array to xor with the result
-        // for (uint256 i = 0; i < LotteryArray.length; i++) {
-        //     xorResult=uint160(address(LotteryArray[i])); // 将 address 转为 uint256
-        // }
-        //xorResult=uint160(address(LotteryArray[LotteryArray.length-1]));
+        for (uint256 i = 0; i < LotteryArray.length; i++) {
+            xorResult=uint160(address(LotteryArray[i])); // 将 address 转为 uint256
+        }
 
         // mod the result with 10 to get the randomNumber
         uint8 randomNumber = uint8((xorResult+seed) % 10);
